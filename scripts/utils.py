@@ -1,28 +1,6 @@
 import torch
 
-aspect_ratios = [1,2,3,5,7,10]
-input_dim = 300
-grids_size = [38, 19, 10, 5, 3, 1]
-steps = [8, 16, 32, 64, 100, 300]
-sizes = [30, 60, 111, 162, 213, 264, 315]
-
-def create_prior_boxes():
-    prior_boxes = []
-    for s in range(len(grid_sizes)):
-        for y in range(s):
-            for x in range(s):
-                cx = (x+0.5)*steps[s]/300
-                cy = (y+0.5)*steps[s]/300
-                side = sizes[s]/300
-                prior_boxes.append([cx,cy,side,side])
-                side = np.sqrt(sizes[s]*sizes[s+1])/300
-                prior_boxes.append([cx,cy,side,side)
-                for a in aspect_ratios:
-                    prior_boxes.append(cx,cy,side/np.sqrt(a),side*np.sqrt(a))
-                    prior_boxes.append(cx,cy,side*np.sqrt(a),side/np.sqrt(a))
-    return np.array(prior_boxes)
-
-def iou(box1, box2):
+def get_iou(box1, box2):
     left_top = torch.max(box1[:,:2], box2[:,:2])
     right_bot = torch.min(box1[:,2:], box2[:,2:])
     area_1 = torch.prod(a[:, 2:] - a[:, :2], dim=1)
@@ -31,6 +9,43 @@ def iou(box1, box2):
     intersection = torch.prod(rb - lt, axis=2) * mask
     union = area_1 + area_2 - intersection
     return intersection/union
+
+
+
+class box_utility:
+    def __init__(self):
+        self.aspect_ratios = [1,2,3,5,7,10]
+        self.input_dim = 300
+        self.grids_size = [38, 19, 10, 5, 3, 1]
+        self.steps = [8, 16, 32, 64, 100, 300]
+        self.sizes = [30, 60, 111, 162, 213, 264, 315]
+
+
+    def create_prior_boxes(self):
+        self.prior_boxes = []
+        for s in range(len(self.grid_sizes)):
+            for y in range(s):
+                for x in range(s):
+                    cx = (x+0.5)*self.steps[s]/300
+                    cy = (y+0.5)*self.steps[s]/300
+                    side = self.sizes[s]/300
+                    self.prior_boxes.append([cx,cy,side,side])
+                    side = np.sqrt(self.sizes[s]*self.sizes[s+1])/300
+                    self.prior_boxes.append([cx,cy,side,side])
+                    for a in self.aspect_ratios:
+                        self.prior_boxes.append(cx,cy,side/np.sqrt(a),side*np.sqrt(a))
+                        self.prior_boxes.append(cx,cy,side*np.sqrt(a),side/np.sqrt(a))
+        self.prior_boxes = boxes = np.clip(np.array(self.prior_boxes),0.0,1.0)
+
+    def get_prior_gt_match(self, boxes):
+        self.modified_gt = {}
+        for b,box in enumerate(boxes):
+            for prior in self.prior_boxes:
+                iou = get_iou(box, prior)
+                max_iou = np.max(iou)
+                if max_iou>thresh:
+                    m = np.argmax(iou)
+                    modified_gt[b] = prior
 
 
 # Original author: Francisco Massa:
